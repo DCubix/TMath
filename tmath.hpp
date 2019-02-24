@@ -30,33 +30,22 @@
 #		include <smmintrin.h>
 #	endif
 
-#define ON 0xFFFFFFFF
-float tmath_simd_dot(__m128 a, __m128 b,
-					 unsigned int m0 = ON,
-					 unsigned int m1 = ON,
-					 unsigned int m2 = ON,
-					 unsigned int m3 = ON
-) {
-	const unsigned int mask[] = { m0, m1, m2, m3 };
-	__m128 mmask = _mm_load_ps((const float*) mask);
-
-	__m128 mulRes, shufReg, sumsReg;
-	mulRes = _mm_mul_ps(a, b);
-	mulRes = _mm_and_ps(mulRes, mmask);
-
-	// Calculates the sum of SSE Register - https://stackoverflow.com/a/35270026/195787
-	shufReg = _mm_movehdup_ps(mulRes);        // Broadcast elements 3,1 to 2,0
-	sumsReg = _mm_add_ps(mulRes, shufReg);
-	shufReg = _mm_movehl_ps(shufReg, sumsReg); // High Half -> Low Half
-	sumsReg = _mm_add_ss(sumsReg, shufReg);
-	return  _mm_cvtss_f32(sumsReg);
-}
-
 #endif
 
 #ifdef TMATH_USE_NAMESPACE
 namspace tm {
 #endif
+
+namespace consts {
+	const float Pi = 3.14159265358f;
+	const float InvPi = 1.0f / Pi;
+	const float InvTwoPi = 2.0f / Pi;
+	const float HalfPi = Pi / 2.0f;
+	const float QuarPi = Pi / 4.0f;
+	const float TwoPi = Pi * 2.0f;
+	const float Epsilon = 1e-5f;
+	const float E = 2.71828182845f;
+}
 
 class Vector2 {
 public:
@@ -450,7 +439,6 @@ public:
 #else
 		float* m = data();
 		float inv[16], det;
-		int i;
 
 		inv[0] = m[5] * m[10] * m[15] -
 			m[5] * m[11] * m[14] -
@@ -569,9 +557,9 @@ public:
 		if (det == 0)
 			return (*this);
 
-		det = 1.0 / det;
+		det = 1.0f / det;
 
-		for (i = 0; i < 16; i++) res.data()[i] = inv[i] * det;
+		for (int i = 0; i < 16; i++) res.data()[i] = inv[i] * det;
 #endif
 		return res;
 	}
